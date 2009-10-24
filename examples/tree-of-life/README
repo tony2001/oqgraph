@@ -1,0 +1,44 @@
+Example by Roland Bouman (http://rpbouman.blogspot.com/)
+Imported into oqgraph public repo by Arjen Lentz (graph@openquery.com)
+
+The earliest substantial dataset size OQGRAPH example blogpost was
+based on this example.
+See http://openquery.com/blog/walking-tree-life-simple-sql
+
+
+The Tree of Life dataset originates from http://tolweb.org/ and the
+downloadable dataset is licensed under the Creative Commons 3.0
+non-commercial License (http://creativecommons.org/licenses/by-nc/3.0/)
+
+This means we can include a full MySQL dump for you in the repo,
+but we'll also give you the xslt stylesheets to do your own.
+
+See INSTALL for further details.
+
+
+TODO
+====
+
+1) The stylesheet output currently is not quite clean.
+- The root entry needs to be adjusted (NULL instead of blank parent link),
+- and the nodes with empty names or descriptions need to be NULL.
+The SQL dump has all this, but if you redo the process you need to fix.
+If you can fix up the stylesheet to handle this, that'd be great!
+
+
+2) Example of this type of traversal in plain SQL, to show difference.
+Most likely sensible approach:
+The main 'tol' table already uses the adjacency model (id,parent).
+For the given tol examples, we don't need a smart shortest path search,
+can can just walk from A back to "life on earth" and do the same for B.
+Then we see whether the A and B paths intersect before reaching the top;
+if so, we can remove the rest of that path beyond the intersection.
+
+Rather than creating a dependency on scripting, it would be nicest
+to show it in SQL, like a stored procedure. Conceptually it's
+straightforward, but it'll still be a lot of queries, doing the
+to-root walks, and thus it'll be slow.
+
+
+
+=== end of file ===

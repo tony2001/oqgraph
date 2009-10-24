@@ -1,0 +1,135 @@
+(instructions by Arjen, based on Roland's info; updates/fixes welcome!)
+
+
+From included SQL dump
+======================
+
+# run this to load the dump into MySQL, it will create/populate the tol table.
+mysql test <tol.sql
+
+This is just the main dataset, the OQGRAPH table still has to be created.
+(read on in the general part below)
+
+
+
+From the original dataset (RDF)
+==============================
+
+To grab the public dataset, use
+wget -o tol.xml http://tolweb.org/onlinecontributors/app?service=external&page=xml/TreeStructureService&node_id=1
+
+To transform the RDF (XML) to CSV, use
+xsltproc --output tol.csv tol-adjacency-list.xslt tol.xml
+
+Two manual transformations at this point (see README for details)
+- For the first entry (Life on Earth), change the empty field (;;) to \N
+- For any "" (empty string), do the same.
+After this the first entry should be 1;\N;1;"Life on Earth";\N
+(yep this is semicolon not comma separated - feel free to fix)
+
+
+# create a suitable table to load it in to
+CREATE TABLE tol (
+  id int(10) unsigned NOT NULL DEFAULT '0',
+  parent int(10) unsigned DEFAULT NULL,
+  position int(11) DEFAULT NULL,
+  name varchar(100) DEFAULT NULL,
+  description varchar(200) DEFAULT NULL,
+  PRIMARY KEY (id),
+  KEY name (name)
+);
+
+# assumes that the tol table exists in the test db, adjust if needed
+mysqlimport -u root --ignore-lines=1 --fields-terminated-by=";" --fields-optionally-enclosed-by="\"" test /fullpath/tol.csv
+
+(read on in the general part below)
+
+
+
+General - creating/loading the graph
+====================================
+
+First create a tol_tree table with the OQGRAPH structure.
+(we're not including that statement here just in case it changes)
+
+# copy all edges across to graph, bidirectional
+# (note that this 128102 edges and inserting will take several minutes)
+INSERT INTO tol_tree (origid,destid)
+  SELECT parent,id FROM tol WHERE parent IS NOT NULL;
+INSERT INTO tol_tree (destid,origid)
+  SELECT parent,id FROM tol WHERE parent IS NOT NULL;
+
+And you're ready to roll!
+Remember, OQGRAPH is not persistent so you'll need to rerun the
+INSERT ... SELECT statements when you restart your server.
+
+
+Playing with the dataset...
+===========================
+
+For query simplicity in these examples, we looked up the id the start/end
+name separately. You can add joins (or perhaps better subqueries) to do
+those name lookups. You may also find Google and Wikipedia useful for
+looking up the Latin names of things ;-)
+
+latch=1 indicates we use Dijkstra’s shortest-path algorithm for our search.
+See the main OQGRAPH docs for details and alternative search algorithms.
+
+Below we've used the GROUP_CONCAT() function which makes the output look
+pretty. Of course you don't have to use that, it's just an example.
+Note that because it's a GROUP BY function, it filters out NULLs which is
+why the path steps where 'name' is NULL don't show in the result.
+The full paths are >70 entries long. Run without GROUP_CONCAT(), you'll see!
+
+
+# Let’s find ourselves (Homo Sapiens) in the tree of life!
+SELECT GROUP_CONCAT(name ORDER BY seq SEPARATOR ‘ -> ‘) AS path
+  FROM tol_graph JOIN tol ON (linkid=id)
+  WHERE latch=1 AND origid=1 AND destid=16421 \G
+*************************** 1. row ***************************
+path: Life on Earth -> Eukaryotes -> Unikonts -> Opisthokonts -> Animals -> Bilateria -> Deuterostomia -> Chordata -> Craniata -> Vertebrata -> Gnathostomata -> Teleostomi -> Osteichthyes -> Sarcopterygii -> Terrestrial Vertebrates -> Tetrapoda -> Reptiliomorpha -> Amniota -> Synapsida -> Eupelycosauria -> Sphenacodontia -> Sphenacodontoidea -> Therapsida -> Theriodontia -> Cynodontia -> Mammalia -> Eutheria -> Primates -> Catarrhini -> Hominidae -> Homo -> Homo sapiens
+1 row in set (0.13 sec)
+
+# how are we related to the family of plants containing the banana
+SELECT GROUP_CONCAT(name ORDER BY seq SEPARATOR ‘ -> ‘) AS path
+  FROM tol_graph JOIN tol ON (linkid=id)
+  WHERE latch=1 AND origid=16421 AND destid=21506 \G
+*************************** 1. row ***************************
+path: Homo sapiens -> Homo -> Hominidae -> Catarrhini -> Primates -> Eutheria -> Mammalia -> Cynodontia -> Theriodontia -> Therapsida -> Sphenacodontoidea -> Sphenacodontia -> Eupelycosauria -> Synapsida -> Amniota -> Reptiliomorpha -> Tetrapoda -> Terrestrial Vertebrates -> Sarcopterygii -> Osteichthyes -> Teleostomi -> Gnathostomata -> Vertebrata -> Craniata -> Chordata -> Deuterostomia -> Bilateria -> Animals -> Opisthokonts -> Unikonts -> Eukaryotes -> Archaeplastida (Plantae) -> Green plants -> Streptophyta -> Embryophytes -> Spermatopsida -> Angiosperms -> Monocotyledons -> Zingiberanae -> Musaceae
+1 row in set (0.06 sec)
+
+Obviously, this search needs to find its way up the tree then find the appropriate other branch.
+
+# finally, our connection retro-viruses
+SELECT GROUP_CONCAT(name ORDER BY seq SEPARATOR ‘ -> ‘) AS path
+  FROM tol_graph JOIN tol ON (linkid=id)
+  WHERE latch=1 AND origid=16421 AND destid=57380 \G
+*************************** 1. row ***************************
+path: Homo sapiens -> Homo -> Hominidae -> Catarrhini -> Primates -> Eutheria -> Mammalia -> Cynodontia -> Theriodontia -> Therapsida -> Sphenacodontoidea -> Sphenacodontia -> Eupelycosauria -> Synapsida -> Amniota -> Reptiliomorpha -> Tetrapoda -> Terrestrial Vertebrates -> Sarcopterygii -> Osteichthyes -> Teleostomi -> Gnathostomata -> Vertebrata -> Craniata -> Chordata -> Deuterostomia -> Bilateria -> Animals -> Opisthokonts -> Unikonts -> Eukaryotes -> Life on Earth -> Viruses -> DNA-RNA Reverse Transcribing Viruses -> Retroviridae
+1 row in set (0.06 sec)
+
+As you can see this one has to walk all the way back to “life on earth”, we’re really not related at all.
+
+
+
+Traversal speed test
+====================
+Reusing the search from homo sapiens to retro viruses, including the join,
+we run through the MySQL BENCHMARK() function to see how fast an actual
+traversal query is. For 1 million runs on a 64bit box it might be around
+1.86 seconds. I don't know how stable that is, my desktop box is pretty
+fast and this is all in RAM anyway.
+
+Regardless, it makes a point: running a million graph traversals only
+takes less than two seconds. That's pretty darn fast, and you just cannot
+do these queries sanely without. (see README, we want to build it anyway,
+just to show how annoying and slow it is ;-)
+
+SELECT benchmark(1000000,
+  (SELECT GROUP_CONCAT(name ORDER BY seq SEPARATOR ‘ -> ‘) AS path
+   FROM tol_tree JOIN tol ON (linkid=id)
+   WHERE latch=1 AND origid=16421 AND destid=57380));
+
+
+
+=== end of file ===
