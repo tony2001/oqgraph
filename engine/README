@@ -1,0 +1,15 @@
+======================================================================
+Open Query Graph Computation Engine, based on a concept by Arjen Lentz
+Copyright (C) 2007-2009 Arjen G Lentz & Antony T Curtis for Open Query
+Mk.II implementation by Antony Curtis & Arjen Lentz
+
+- Open Query original code licensed under GPLv2+
+- MySQL 5.0 derived glue code licensed under GPLv2
+- Boost library licensed under Boost Software License (GPL compatible)
+
+For more information, documentation, support, enhancement engineering,
+and non-GPL licensing, see http://openquery.com/graph
+or contact graph@openquery.com
+
+For packaged binaries, see http://ourdelta.org
+======================================================================

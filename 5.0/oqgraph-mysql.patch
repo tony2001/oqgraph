@@ -1,0 +1,296 @@
+Index: mysql-5.0.86/config/ac-macros/ha_oqgraph.m4
+===================================================================
+--- /dev/null	1970-01-01 00:00:00.000000000 +0000
++++ mysql-5.0.86/config/ac-macros/ha_oqgraph.m4	2009-10-23 23:55:44.000000000 -0700
+@@ -0,0 +1,32 @@
++dnl ---------------------------------------------------------------------------
++dnl Macro: MYSQL_CHECK_OQGRAPH
++dnl Sets HAVE_OQGRAPH if --with-oqgraph-computation-engine is used
++dnl ---------------------------------------------------------------------------
++AC_DEFUN([MYSQL_CHECK_OQGRAPH], [
++  AC_ARG_WITH([oqgraph-computation-engine],
++              [
++  --with-oqgraph-computation-engine
++                          Enable the Open Query Graph Computation Engine],
++              [oqgraph="$withval"],
++              [oqgraph=no])
++  AC_MSG_CHECKING([for OQGRAPH computation engine])
++
++  case "$oqgraph" in
++    yes )
++      AC_DEFINE([HAVE_OQGRAPH], [1], [Builds OQGRAPH Engine])
++      AC_MSG_RESULT([yes])
++      [oqgraph=yes]
++      ;;
++    * )
++      AC_MSG_RESULT([no])
++      [oqgraph=no]
++      ;;
++  esac
++
++  AM_CONDITIONAL(BUILD_OQGRAPHCORE, test "$oqgraph" = "yes")
++  AC_CONFIG_FILES(sql/oqgraph/Makefile)
++])
++dnl ---------------------------------------------------------------------------
++dnl END OF MYSQL_CHECK_OQGRAPH SECTION
++dnl ---------------------------------------------------------------------------
++
+Index: mysql-5.0.86/configure.in
+===================================================================
+--- mysql-5.0.86.orig/configure.in	2009-10-23 23:55:41.000000000 -0700
++++ mysql-5.0.86/configure.in	2009-10-23 23:55:44.000000000 -0700
+@@ -59,6 +59,7 @@
+ sinclude(config/ac-macros/ha_blackhole.m4)
+ sinclude(config/ac-macros/ha_example.m4)
+ sinclude(config/ac-macros/ha_sphinx.m4)
++sinclude(config/ac-macros/ha_oqgraph.m4)
+ sinclude(config/ac-macros/ha_federated.m4)
+ sinclude(config/ac-macros/ha_innodb.m4)
+ sinclude(config/ac-macros/ha_ndbcluster.m4)
+@@ -2705,6 +2706,7 @@
+ MYSQL_CHECK_INNODB
+ MYSQL_CHECK_EXAMPLEDB
+ MYSQL_CHECK_SPHINXDB
++MYSQL_CHECK_OQGRAPH
+ MYSQL_CHECK_ARCHIVEDB
+ MYSQL_CHECK_CSVDB
+ MYSQL_CHECK_BLACKHOLEDB
+Index: mysql-5.0.86/libmysqld/Makefile.am
+===================================================================
+--- mysql-5.0.86.orig/libmysqld/Makefile.am	2009-10-23 23:55:41.000000000 -0700
++++ mysql-5.0.86/libmysqld/Makefile.am	2009-10-23 23:55:44.000000000 -0700
+@@ -30,9 +30,15 @@
+ 			-I$(top_builddir)/sql -I$(top_srcdir)/sql \
+ 			-I$(top_srcdir)/sql/examples \
+ 			-I$(top_srcdir)/sql/sphinx \
++			-I$(top_srcdir)/sql/oqgraph \
+ 			-I$(top_srcdir)/regex \
+ 			$(openssl_includes) @ZLIB_INCLUDES@
+ 
++BOOST_CXXFLAGS =	-fexceptions -fimplicit-templates
++BOOST_CXXFLAGS+=	-O3 -fomit-frame-pointer -fstrict-aliasing
++BOOST_CXXFLAGS+=	-momit-leaf-frame-pointer -fno-tree-pre -falign-loops
++BOOST_CXXFLAGS+=	-fvisibility-inlines-hidden
++
+ noinst_LIBRARIES =	libmysqld_int.a
+ pkglib_LIBRARIES =	libmysqld.a
+ SUBDIRS =		. examples
+@@ -41,6 +47,7 @@
+                         my_time.c
+ sqlexamplessources =	ha_example.cc ha_tina.cc
+ sqlsphinxsources =	ha_sphinx.cc
++sqloqgraphsources =	ha_oqgraph.cc graphcore.cc
+ 
+ noinst_HEADERS =	embedded_priv.h emb_qcache.h
+ 
+@@ -69,12 +76,16 @@
+ 	parse_file.cc sql_view.cc sql_trigger.cc my_decimal.cc \
+ 	ha_blackhole.cc ha_archive.cc my_user.c
+ 
+-libmysqld_int_a_SOURCES= $(libmysqld_sources) $(libmysqlsources) $(sqlsources) $(sqlexamplessources) $(sqlsphinxsources)
++libmysqld_int_a_SOURCES= $(libmysqld_sources) $(libmysqlsources) $(sqlsources) $(sqlexamplessources) $(sqlsphinxsources) \
++		$(sqloqgraphsources)
+ libmysqld_a_SOURCES=
+ 
+ # automake misses these
+ sql_yacc.cc sql_yacc.h: $(top_srcdir)/sql/sql_yacc.yy
+ 
++graphcore.o: graphcore.cc $(top_srcdir)/sql/oqgraph/graphcore.h $(top_srcdir)/sql/oqgraph/graphcore-types.h $(top_srcdir)/sql/oqgraph/graphcore-graph.h
++		$(CXXCOMPILE) $(LM_CFLAGS) $(BOOST_CXXFLAGS) -c graphcore.cc
++
+ # The following libraries should be included in libmysqld.a
+ INC_LIB=	$(top_builddir)/regex/libregex.a \
+ 		$(top_builddir)/myisam/libmyisam.a \
+@@ -153,12 +164,16 @@
+ 	    rm -f $$f; \
+ 	    @LN_CP_F@ $(top_srcdir)/sql/sphinx/$$f $$f; \
+ 	  done; \
++	  for f in $(sqloqgraphsources); do \
++	    rm -f $$f; \
++	    @LN_CP_F@ $(top_srcdir)/sql/oqgraph/$$f $$f; \
++	  done; \
+ 	  rm -f client_settings.h; \
+ 	  @LN_CP_F@ $(top_srcdir)/libmysql/client_settings.h client_settings.h
+ 
+ 
+ clean-local:
+-	rm -f `echo $(sqlsources) $(libmysqlsources) $(sqlexamplessources) $(sqlsphinxsources) | sed "s;\.lo;.c;g"` \
++	rm -f `echo $(sqlsources) $(libmysqlsources) $(sqlexamplessources) $(sqlsphinxsources) $(sqloqgraphsources)| sed "s;\.lo;.c;g"` \
+ 	       $(top_srcdir)/linked_libmysqld_sources; \
+ 	rm -f client_settings.h
+ 
+Index: mysql-5.0.86/sql/Makefile.am
+===================================================================
+--- mysql-5.0.86.orig/sql/Makefile.am	2009-10-23 23:55:41.000000000 -0700
++++ mysql-5.0.86/sql/Makefile.am	2009-10-23 23:55:44.000000000 -0700
+@@ -24,7 +24,7 @@
+ 			-I$(top_srcdir)/regex -I$(srcdir) \
+                         $(openssl_includes)
+ WRAPLIBS=		@WRAPLIBS@
+-SUBDIRS =		share
++SUBDIRS =		oqgraph . share
+ libexec_PROGRAMS =	mysqld
+ EXTRA_PROGRAMS =	gen_lex_hash
+ bin_PROGRAMS =		mysql_tzinfo_to_sql
+@@ -42,6 +42,7 @@
+ 			@bdb_libs@ @innodb_libs@ @pstack_libs@ \
+                         @innodb_system_libs@ \
+ 			@ndbcluster_libs@ @ndbcluster_system_libs@ \
++			$(top_builddir)/sql/oqgraph/libgraphcore.a \
+ 			$(LDADD)  $(CXXLDFLAGS) $(WRAPLIBS) @LIBDL@ \
+ 			$(yassl_libs) $(openssl_libs) @MYSQLD_EXTRA_LIBS@
+ 
+@@ -69,6 +70,8 @@
+ 			examples/ha_example.h ha_archive.h \
+ 			examples/ha_tina.h ha_blackhole.h \
+ 			sphinx/ha_sphinx.h \
++			oqgraph/ha_oqgraph.h oqgraph/graphcore.h \
++			oqgraph/graphcore-types.h \
+ 			ha_federated.h
+ mysqld_SOURCES =	sql_lex.cc sql_handler.cc \
+ 			item.cc item_sum.cc item_buff.cc item_func.cc \
+@@ -107,6 +110,7 @@
+ 			examples/ha_example.cc ha_archive.cc \
+ 			examples/ha_tina.cc ha_blackhole.cc \
+                         sphinx/ha_sphinx.cc \
++                        oqgraph/ha_oqgraph.cc \
+ 			ha_federated.cc
+ 
+ gen_lex_hash_SOURCES =	gen_lex_hash.cc
+Index: mysql-5.0.86/sql/handler.cc
+===================================================================
+--- mysql-5.0.86.orig/sql/handler.cc	2009-10-23 23:55:41.000000000 -0700
++++ mysql-5.0.86/sql/handler.cc	2009-10-23 23:55:44.000000000 -0700
+@@ -86,6 +86,15 @@
+   NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+   HTON_NO_FLAGS };
+ #endif
++#ifdef HAVE_OQGRAPH
++#include "oqgraph/ha_oqgraph.h"
++extern handlerton oqgraph_hton;
++#else
++handlerton oqgraph_hton = { "OQGRAPH", SHOW_OPTION_NO, "Open Query Graph engine",
++  DB_TYPE_OQGRAPH, NULL, 0, 0, NULL, NULL,
++  NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
++  HTON_NO_FLAGS };
++#endif
+ #ifdef HAVE_INNOBASE_DB
+ #include "ha_innodb.h"
+ extern handlerton innobase_hton;
+@@ -151,6 +160,7 @@
+   &archive_hton,
+   &tina_hton,
+   &sphinx_hton,
++  &oqgraph_hton,
+   &ndbcluster_hton,
+   &federated_hton,
+   &myisammrg_hton,
+@@ -358,6 +368,12 @@
+       return new (alloc) ha_sphinx(table);
+     return NULL;
+ #endif
++#ifdef HAVE_OQGRAPH
++  case DB_TYPE_OQGRAPH:
++    if (have_oqgraph == SHOW_OPTION_YES)
++      return new (alloc) ha_oqgraph(table);
++    return NULL;
++#endif
+ #ifdef HAVE_NDBCLUSTER_DB
+   case DB_TYPE_NDBCLUSTER:
+     if (have_ndbcluster == SHOW_OPTION_YES)
+Index: mysql-5.0.86/sql/handler.h
+===================================================================
+--- mysql-5.0.86.orig/sql/handler.h	2009-10-23 23:55:41.000000000 -0700
++++ mysql-5.0.86/sql/handler.h	2009-10-23 23:55:44.000000000 -0700
+@@ -193,6 +193,7 @@
+   DB_TYPE_FEDERATED_DB, 
+   DB_TYPE_BLACKHOLE_DB,
+   DB_TYPE_SPHINX_DB,
++  DB_TYPE_OQGRAPH,
+   DB_TYPE_DEFAULT // Must be last
+ };
+ 
+Index: mysql-5.0.86/sql/mysql_priv.h
+===================================================================
+--- mysql-5.0.86.orig/sql/mysql_priv.h	2009-10-23 23:55:43.000000000 -0700
++++ mysql-5.0.86/sql/mysql_priv.h	2009-10-23 23:55:44.000000000 -0700
+@@ -1564,6 +1564,12 @@
+ #else
+ extern SHOW_COMP_OPTION have_sphinx_db;
+ #endif
++#ifdef HAVE_OQGRAPH
++extern handlerton oqgraph_hton;
++#define have_oqgraph oqgraph_hton.state
++#else
++extern SHOW_COMP_OPTION have_oqgraph;
++#endif
+ #ifdef HAVE_FEDERATED_DB
+ extern handlerton federated_hton;
+ #define have_federated_db federated_hton.state
+Index: mysql-5.0.86/sql/mysqld.cc
+===================================================================
+--- mysql-5.0.86.orig/sql/mysqld.cc	2009-10-23 23:55:41.000000000 -0700
++++ mysql-5.0.86/sql/mysqld.cc	2009-10-23 23:55:44.000000000 -0700
+@@ -7156,6 +7156,11 @@
+ #else
+   have_sphinx_db= SHOW_OPTION_NO;
+ #endif
++#ifdef HAVE_OQGRAPH
++  have_oqgraph= SHOW_OPTION_YES;
++#else
++  have_oqgraph= SHOW_OPTION_NO;
++#endif
+ #ifdef HAVE_NDBCLUSTER_DB
+   have_ndbcluster=SHOW_OPTION_DISABLED;
+ #else
+@@ -8345,6 +8350,7 @@
+ #undef have_archive_db
+ #undef have_csv_db
+ #undef have_sphinx_db
++#undef have_oqgraph
+ #undef have_federated_db
+ #undef have_partition_db
+ #undef have_blackhole_db
+@@ -8356,6 +8362,7 @@
+ SHOW_COMP_OPTION have_archive_db= SHOW_OPTION_NO;
+ SHOW_COMP_OPTION have_csv_db= SHOW_OPTION_NO;
+ SHOW_COMP_OPTION have_sphinx_db= SHOW_OPTION_NO;
++SHOW_COMP_OPTION have_oqgraph= SHOW_OPTION_NO;
+ SHOW_COMP_OPTION have_federated_db= SHOW_OPTION_NO;
+ SHOW_COMP_OPTION have_partition_db= SHOW_OPTION_NO;
+ SHOW_COMP_OPTION have_blackhole_db= SHOW_OPTION_NO;
+Index: mysql-5.0.86/sql/set_var.cc
+===================================================================
+--- mysql-5.0.86.orig/sql/set_var.cc	2009-10-23 23:55:41.000000000 -0700
++++ mysql-5.0.86/sql/set_var.cc	2009-10-23 23:55:44.000000000 -0700
+@@ -1031,6 +1031,7 @@
+   {"have_ndbcluster",         (char*) &have_ndbcluster,             SHOW_HAVE},
+   /* have_openssl is just and alias for have_ssl */
+   {"have_openssl",	      (char*) &have_ssl,		    SHOW_HAVE},
++  {"have_oqgraph",            (char*) &have_oqgraph,             SHOW_HAVE},
+   {"have_ssl",	              (char*) &have_ssl,		    SHOW_HAVE},
+   {"have_query_cache",        (char*) &have_query_cache,            SHOW_HAVE},
+   {"have_raid",		      (char*) &have_raid,		    SHOW_HAVE},
+Index: mysql-5.0.86/mysql-test/r/ps_1general.result
+===================================================================
+--- mysql-5.0.86.orig/mysql-test/r/ps_1general.result	2009-10-22 08:21:04.000000000 +1000
++++ mysql-5.0.86/mysql-test/r/ps_1general.reject	2009-10-22 19:02:20.000000000 +1000
+@@ -330,6 +330,7 @@
+ ARCHIVE	YES/NO	Archive storage engine
+ CSV	YES/NO	CSV storage engine
+ SPHINX	YES/NO	Sphinx storage engine
++OQGRAPH	YES/NO	Open Query Graph Computation Engine, stored in memory
+ ndbcluster	YES/NO	Clustered, fault-tolerant, memory-based tables
+ FEDERATED	YES/NO	Federated MySQL storage engine
+ MRG_MYISAM	YES/NO	Collection of identical MyISAM tables
+Index: mysql-5.0.86/patch_info/graph_engine.info
+===================================================================
+--- /dev/null	1970-01-01 00:00:00.000000000 +0000
++++ mysql-5.0.86/patch_info/graph_engine.info	2009-10-23 23:55:44.000000000 -0700
+@@ -0,0 +1,6 @@
++File=graph_engine.patch
++Name=Graph Computation Engine
++Version=2.0
++Author=Arjen G Lentz & Antony T Curtis for Open Query <graph@openquery.com>
++License=GPL
++Comment=For info/docs/support/engineering/licensing, see http://openquery.com/graph

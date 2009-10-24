@@ -1,0 +1,53 @@
+======================================================================
+Open Query Graph Computation Engine, based on a concept by Arjen Lentz
+Copyright (C) 2007-2009 Arjen G Lentz & Antony T Curtis for Open Query
+Mk.II implementation by Antony Curtis & Arjen Lentz
+
+- Open Query original code licensed under GPLv2+
+- MySQL 5.0 derived glue code licensed under GPLv2
+- Boost library licensed under Boost Software License (GPL compatible)
+
+For more information, documentation, support, enhancement engineering,
+and non-GPL licensing, see http://openquery.com/graph
+or contact graph@openquery.com
+
+For packaged binaries, see http://ourdelta.org
+======================================================================
+
+To install, grab a copy of the MySQL or MariaDB source code (5.1 or later)
+and run this:
+
+sh config/autorun.sh
+./configure --with-mysql=/home/you/mariadb-5.1/
+make
+
+Note that (this is currently a MySQL/MariaDB plugin limitation) you need
+to build against the exact version you're going to be loading the plugin,
+and also flags like DEBUG need to be identical. Otherwise things go boom.
+
+
+When the build is ok, run this inside of MySQL/MariaDB:
+
+SHOW GLOBAL VARIABLES LIKE 'plugin_dir';
+# this shows the directory you need to copy the shared library, then run
+# sudo cp .libs/liboqgraph_engine.so <theplugindir>
+# now you're ready to load the plugin into the running server
+INSTALL PLUGIN oqgraph SONAME 'liboqgraph_engine.so';
+
+Take a peek with SHOW PLUGINS or SELECT * FROM INFORMATION_SCHEMA.PLUGINS
+OQGRAPH should be there, active, and ready to use.
+
+See the full docu for your next steps http://openquery.com/graph/doc
+
+You can actually also unload a plugin from a running server.
+In case of an engine, FLUSH TABLES first so there are no open tables.
+UNINSTALL PLUGIN oqgraph;
+You won't generally need this, but it can be nice during debugging.
+
+
+Please file bug reports at https://bugs.launchpad.net/oqgraph
+
+
+Enjoy!
+Arjen & Antony, Open Query
+graph@openquery.com

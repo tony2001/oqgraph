@@ -1,0 +1,134 @@
+Open Query Graph Computation Engine, based on a concept by Arjen Lentz
+Copyright (C) 2007-2009 Arjen G Lentz & Antony T Curtis for Open Query
+Mk.II implementation by Antony Curtis & Arjen Lentz
+
+- Open Query original code licensed under GPLv2+
+- MySQL 5.0 derived glue code licensed under GPLv2
+- Boost library licensed under Boost Software License (GPL compatible)
+
+For more information, documentation, support, enhancement engineering,
+and non-GPL licensing, see http://openquery.com/graph
+or contact graph@openquery.com
+
+For packaged binaries, see http://ourdelta.org
+
+
+OVERVIEW
+========
+
+Graph computation engine for MySQL, MariaDB and Drizzle.
+
+Base Mk.II implementation
+ - data in memory using BGL (non-persistent, non-transactional)
+
+For full docu, see http://openquery.com/graph/doc
+
+
+TABLE STRUCTURE
+===============
+
+  CREATE TABLE foo (
+    latch   SMALLINT  UNSIGNED NULL,
+    origid  BIGINT    UNSIGNED NULL,
+    destid  BIGINT    UNSIGNED NULL,
+    weight  DOUBLE    NULL,
+    seq     BIGINT    UNSIGNED NULL,
+    linkid  BIGINT    UNSIGNED NULL,
+    KEY (latch, origid, destid) USING HASH,
+    KEY (latch, destid, origid) USING HASH
+  ) ENGINE=OQGRAPH
+
+
+USAGE
+=====
+
+1. INSERT EDGES INTO GRAPH ENGINE
+
+  INSERT INTO foo (origid,destid) 
+  VALUES (1,2), (2,3), (2,4), (3,5), (4,6), (5,6);
+
+2. QUERY EDGES STORED IN GRAPH ENGINE
+
+  SELECT * FROM foo;
+  Results:
+    vertex id for origin of edge in origid column.
+    vertex id for destination of edge in destid column.
+    weight of edge in weight column.
+
+3. MODIFY EDGE STORED IN GRAPH ENGINE
+
+  UPDATE foo SET weight = 2 WHERE origid=2 AND destid=4;
+  UPDATE foo SET destid = 7 WHERE origid=3 AND destid=5;
+  etc.
+
+  Due to instability of cursors, if the edge orig/dest are changed,
+  the following would produce incorrect results:
+
+  UPDATE foo SET destid = destid + 10;
+  
+  Only modifying the weights is safe:
+  
+  UPDATE foo SET weight = weight * 10;
+  
+
+4. QUERY VERTICES STORED IN GRAPH ENGINE
+
+  SELECT * FROM foo WHERE latch = 0;
+  Results:
+    vertex id in linkid column
+
+5. QUERY OUT-EDGES FOR VERTEX
+
+  SELECT * FROM foo WHERE latch = 0 AND origid = 2;
+  Results:
+    vertex id in linkid column
+    edge weight in weight column
+
+6. QUERY IN-EDGES FOR VERTEX
+
+  SELECT * FROM foo WHERE latch = 0 AND destid = 6;
+  Results:
+    vertex id in linkid column
+    edge weight in weight column
+
+7. DIJKSTRA'S SHORTEST PATH (latch = 1)
+
+  Find shortest path
+    SELECT * FROM foo WHERE latch = 1 AND origid = 1 AND destid = 6;
+  Results:
+    vertex id in linkid column.
+    weight of traversed edge in weight column.
+
+  Find reachable vertices:
+    SELECT * FROM foo WHERE latch = 1 AND origid = 1;
+  Results:
+    vertex id in linkid column.
+    aggregate of weights in weight column.
+  
+  Find originating vertices:
+    SELECT * FROM foo WHERE latch = 1 AND destid = 6;
+  Results:
+    vertex id in linkid column.
+    aggregate of weights in weight column.
+    
+
+8. BREADTH-FIRST SEARCH (latch = 2, assumes that weight == 1)
+
+  Find shortest path
+    SELECT * FROM foo WHERE latch = 2 AND origid = 1 AND destid = 6;
+  Results:
+    vertex id in linkid column.
+    weight column = 1 for each hop.
+
+  Find reachable vertices:
+    SELECT * FROM foo WHERE latch = 2 AND origid = 1;
+  Results:
+    vertex id in linkid column.
+    computed number of hops in weight column.
+  
+  Find originating vertices:
+    SELECT * FROM foo WHERE latch = 2 AND destid = 6;
+  Results:
+    vertex id in linkid column.
+    computed number of hops in weight column.
+

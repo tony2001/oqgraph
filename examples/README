@@ -1,0 +1,31 @@
+======================================================================
+Open Query Graph Computation Engine, based on a concept by Arjen Lentz
+Copyright (C) 2007-2009 Arjen G Lentz & Antony T Curtis for Open Query
+Mk.II implementation by Antony Curtis & Arjen Lentz
+
+- Open Query original code licensed under GPLv2+
+- MySQL 5.0 derived glue code licensed under GPLv2
+- Boost library licensed under Boost Software License (GPL compatible)
+
+For more information, documentation, support, enhancement engineering,
+and non-GPL licensing, see http://openquery.com/graph
+or contact graph@openquery.com
+
+For packaged binaries, see http://ourdelta.org
+======================================================================
+
+Place your example datasets/trickery for OQGRAPH engine here!
+Simply create a subdirectory with a sensible name, and put in any
+scripts/data as well as an INSTALL file detailing how to work things.
+For transformations (xslt from RDF, etc), do give exact instructions!
+(and perhaps a README with your details, and dataset info/licensing)
+
+Please be mindful of licensing restrictions on datasets, in some cases
+it's ok to download and play with them, but not to (re)distribute.
+In that case, just put info in for people to get that dataset, for
+instance wget <someurl>
+
+Also, dataset licensing generally does not permit you to just place an
+app that uses it online, or commercial uses. In that case it's just ok
+(and still very handy!) for local experiments and demos.
+Always check the details for an individual example dataset.
