@@ -27,6 +27,6 @@ $LIBTOOLIZE --automake --force --copy || die "Can't execute libtoolize"
   
 # --add-missing instructs automake to install missing auxiliary files
 # and --force to overwrite them if they already exist
-automake --add-missing --force  --copy || die "Can't execute automake"
+automake --add-missing --force --foreign --copy || die "Can't execute automake"
 autoconf || die "Can't execute autoconf"
 
