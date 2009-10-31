@@ -23,6 +23,8 @@
 # For packaged binaries, see http://ourdelta.org
 # ======================================================================
 
+mysqlplugindir=		$(pkglibdir)/plugin
+
 BOOST_CXXFLAGS =	-fexceptions -fimplicit-templates
 #BOOST_CXXFLAGS+=	-g
 BOOST_CXXFLAGS+=	-O3 -fomit-frame-pointer -fstrict-aliasing
@@ -30,11 +32,7 @@ BOOST_CXXFLAGS+=	-momit-leaf-frame-pointer -falign-loops
 BOOST_CXXFLAGS+=	-fvisibility-inlines-hidden
 BOOST_CXXFLAGS+=	-funroll-loops -fno-trapping-math
 
-EXTRA_DIST = ha_oqgraph.h CMakeFiles.txt plug.in oqgraph_probes.d
-
-#INCLUDES =   $(MYSQL_INC)
-#INCLUDES = -DMYSQL_DYNAMIC_PLUGIN -DUNIV_MUST_NOT_INLINE -DFORCE_INIT_OF_VARS $(MYSQL_INC) 
-INCLUDES = -DMYSQL_DYNAMIC_PLUGIN -DDBUG_ON -DSAFE_MUTEX -DUNIV_MUST_NOT_INLINE -DEXTRA_DEBUG -DFORCE_INIT_OF_VARS -DSAFEMALLOC -DPEDANTIC_SAFEMALLOC -DSAFE_MUTEX -DHAVE_OQGRAPH $(MYSQL_INC) 
+EXTRA_DIST = ha_oqgraph.h ha_oagraph.cc CMakeFiles.txt plug.in oqgraph_probes.d
 
 DTRACE =                @DTRACE@
 DTRACEFLAGS =           @DTRACEFLAGS@
@@ -43,33 +41,33 @@ DTRACEFILES =           .libs/liboqgraph_engine_la-ha_oqgraph.o
 ORIG_CXXFLAGS= @CXXFLAGS@
 CXXFLAGS=
 
-#noinst_PROGRAMS = graphcore_test
-
 noinst_HEADERS = ha_oqgraph.h \
 		 oqgraph_probes.h
 
 noinst_LTLIBRARIES = libgraphcore.la
-
-lib_LTLIBRARIES = liboqgraph_engine.la
-
-#graphcore_test_SOURCES = graphcore-test.cc
-#graphcore_test_LDADD = libgraphcore.la
-
 libgraphcore_la_SOURCES = graphcore.cc
-libgraphcore_la_CXXFLAGS = @CXXFLAGS@ $(BOOST_CXXFLAGS)
+libgraphcore_la_CXXFLAGS = $(ORIG_CXXFLAGS) $(BOOST_CXXFLAGS)
 
+if BUILD_OQGRAPH_FOR_MYSQL
 
-liboqgraph_engine_la_SOURCES = ha_oqgraph.cc
-liboqgraph_engine_la_LIBADD = libgraphcore.la
+if BUILD_OQGRAPH_STANDALONE
+INCLUDES = -DDBUG_ON -DSAFE_MUTEX -DUNIV_MUST_NOT_INLINE -DEXTRA_DEBUG -DFORCE_INIT_OF_VARS -DSAFEMALLOC -DPEDANTIC_SAFEMALLOC -DSAFE_MUTEX -DHAVE_OQGRAPH $(MYSQL_INC) 
+else
+INCLUDES = -I$(top_srcdir)/include -I$(top_builddir)/include -I$(top_srcdir)/regex -I$(top_srcdir)/sql -I$(srcdir) -DHAVE_OQGRAPH 
+endif !BUILD_OQGRAPH_STANDALONE
+
+EXTRA_LTLIBRARIES = oqgraph_engine.la
+mysqlplugin_LTLIBRARIES = @plugin_oqgraph_shared_target@
+oqgraph_engine_la_SOURCES = ha_oqgraph.cc
+oqgraph_engine_la_LIBADD = libgraphcore.la
 
 if HAVE_DTRACE
-  liboqgraph_engine_la_LIBADD += oqgraph_probes.o
+  oqgraph_engine_la_LIBADD += oqgraph_probes.o
 endif
 
-liboqgraph_engine_la_LDFLAGS =	-module
-liboqgraph_engine_la_CFLAGS = $(AM_CFLAGS) -DMYSQL_DYNAMIC_PLUGIN
-liboqgraph_engine_la_CXXFLAGS = @CXXFLAGS@ -DMYSQL_DYNAMIC_PLUGIN
-# -fimplicit-templates
+oqgraph_engine_la_LDFLAGS =	-module -rpath $(mysqlplugindir)
+oqgraph_engine_la_CFLAGS = $(ORIG_CFLAGS) -DMYSQL_DYNAMIC_PLUGIN
+oqgraph_engine_la_CXXFLAGS = $(ORIG_CXXFLAGS) -DMYSQL_DYNAMIC_PLUGIN
 
 oqgraph_probes.h: oqgraph_probes.d
 	$(DTRACE) $(DTRACEFLAGS) -h -s oqgraph_probes.d
@@ -79,5 +77,7 @@ oqgraph_probes.h: oqgraph_probes.d
 
 oqgraph_probes.o:
 	$(DTRACE) $(DTRACEFLAGS) -G -s oqgraph_probes.d $(DTRACEFILES)
+
+endif BUILD_OQGRAPH_FOR_MYSQL
 
 # End

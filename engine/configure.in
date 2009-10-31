@@ -32,4 +32,9 @@ fi
 AC_C_CONST
 AC_TYPE_SIZE_T
 AC_CHECK_HEADERS(limits.h syslimits.h)
+AM_CONDITIONAL([BUILD_OQGRAPH_STANDALONE], true)
+if test -n "$MYSQL_INC"; then
+  plugin_oqgraph_shared_target="oqgraph_engine.la"
+  AC_SUBST(plugin_oqgraph_shared_target)
+fi
 AC_OUTPUT(Makefile src/Makefile)

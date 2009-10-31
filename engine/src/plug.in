@@ -1,4 +1,8 @@
 MYSQL_STORAGE_ENGINE(oqgraph,,[Graph Storage Engine],
-        [Graph Engine for writing engines], [max,max-no-ndb])
-MYSQL_PLUGIN_STATIC(oqgraph,    [liboqgraph.a])
-MYSQL_PLUGIN_DYNAMIC(oqgraph,   [ha_oqgraph.la])
+        [Open Query Graph Computation Engine], [])
+MYSQL_PLUGIN_DYNAMIC(oqgraph,   [oqgraph_engine.la])
+MYSQL_PLUGIN_DEPENDS_ON_MYSQL_INTERNALS(oqgraph, [ha_oqgraph.cc])
+AM_CONDITIONAL([BUILD_OQGRAPH_FOR_MYSQL], true)
+AM_CONDITIONAL([BUILD_OQGRAPH_STANDALONE], false)
+AM_CONDITIONAL([HAVE_DTRACE], false)
+

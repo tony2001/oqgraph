@@ -24,6 +24,7 @@ AC_DEFUN([MYSQL_SRC_TEST], [
   [
     AC_MSG_ERROR(["no mysql source provided"])
   ])
+  AM_CONDITIONAL([BUILD_OQGRAPH_FOR_MYSQL], test -n "$MYSQL_INC")
 ])
 
 dnl ---------------------------------------------------------------------------
