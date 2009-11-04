@@ -621,7 +621,7 @@ namespace open_query
       return EDGE_NOT_FOUND;
     if (!(dest= share->find_vertex(dest_id)))
       return EDGE_NOT_FOUND;
-    if (!(edge= share->find_edge(*orig, *dest)));
+    if (!(edge= share->find_edge(*orig, *dest)))
       return EDGE_NOT_FOUND;
     remove_edge(*edge, share->g);
     if (!degree(*orig, share->g))

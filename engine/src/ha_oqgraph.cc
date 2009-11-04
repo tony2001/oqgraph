@@ -55,13 +55,17 @@ struct oqgraph_info_st
   char name[FN_REFLEN+1];
 };
 
+static const char oqgraph_description[]=
+  "Open Query Graph Computation Engine, stored in memory "
+  "(http://openquery.com/graph)";
+
 #if MYSQL_VERSION_ID < 50100
 static bool oqgraph_init();
 
 handlerton oqgraph_hton= {
   "OQGRAPH",
   SHOW_OPTION_YES,
-  "Open Query Graph Computation Engine, stored in memory (http://openquery.com/graph)",
+  oqgraph_description,
   DB_TYPE_OQGRAPH,
   oqgraph_init,
   0,       /* slot */
@@ -1014,7 +1018,7 @@ mysql_declare_plugin(oqgraph)
   &oqgraph_storage_engine,
   "OQGRAPH",
   "Arjen Lentz & Antony T Curtis, Open Query",
-  "Open Query Graph Computation Engine, stored in memory (http://openquery.com/graph)",
+  oqgraph_description,
   PLUGIN_LICENSE_GPL,
   (int (*)(void*)) oqgraph_init, /* Plugin Init                  */
   oqgraph_fini,               /* Plugin Deinit                   */

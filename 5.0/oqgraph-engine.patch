@@ -1,7 +1,7 @@
 Index: mysql-5.0.86/sql/oqgraph/COPYING
 ===================================================================
 --- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ mysql-5.0.86/sql/oqgraph/COPYING	2009-10-24 00:11:21.000000000 -0700
++++ mysql-5.0.86/sql/oqgraph/COPYING	2009-11-03 21:36:59.000000000 -0800
 @@ -0,0 +1,352 @@
 +                      GNU GENERAL PUBLIC LICENSE
 +                         Version 2, June 1991
@@ -358,7 +358,7 @@ Index: mysql-5.0.86/sql/oqgraph/COPYING
 Index: mysql-5.0.86/sql/oqgraph/Makefile.am
 ===================================================================
 --- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ mysql-5.0.86/sql/oqgraph/Makefile.am	2009-10-24 00:25:12.000000000 -0700
++++ mysql-5.0.86/sql/oqgraph/Makefile.am	2009-11-03 21:36:59.000000000 -0800
 @@ -0,0 +1,46 @@
 +# Copyright (C) 2007-2009 Arjen G Lentz & Antony T Curtis for Open Query
 +#
@@ -409,7 +409,7 @@ Index: mysql-5.0.86/sql/oqgraph/Makefile.am
 Index: mysql-5.0.86/sql/oqgraph/README
 ===================================================================
 --- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ mysql-5.0.86/sql/oqgraph/README	2009-10-24 00:11:21.000000000 -0700
++++ mysql-5.0.86/sql/oqgraph/README	2009-11-03 21:36:59.000000000 -0800
 @@ -0,0 +1,15 @@
 +======================================================================
 +Open Query Graph Computation Engine, based on a concept by Arjen Lentz
@@ -417,7 +417,7 @@ Index: mysql-5.0.86/sql/oqgraph/README
 +Mk.II implementation by Antony Curtis & Arjen Lentz
 +
 +- Open Query original code licensed under GPLv2+
-+- MySQL 5.0 derived glue code licensed under GPLv2
++- MySQL derived glue code licensed under GPLv2
 +- Boost library licensed under Boost Software License (GPL compatible)
 +
 +For more information, documentation, support, enhancement engineering,
@@ -429,7 +429,7 @@ Index: mysql-5.0.86/sql/oqgraph/README
 Index: mysql-5.0.86/sql/oqgraph/graphcore-graph.h
 ===================================================================
 --- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ mysql-5.0.86/sql/oqgraph/graphcore-graph.h	2009-10-24 00:11:21.000000000 -0700
++++ mysql-5.0.86/sql/oqgraph/graphcore-graph.h	2009-11-03 21:36:59.000000000 -0800
 @@ -0,0 +1,56 @@
 +/* Copyright (C) 2007-2009 Arjen G Lentz & Antony T Curtis for Open Query
 +
@@ -490,7 +490,7 @@ Index: mysql-5.0.86/sql/oqgraph/graphcore-graph.h
 Index: mysql-5.0.86/sql/oqgraph/graphcore-types.h
 ===================================================================
 --- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ mysql-5.0.86/sql/oqgraph/graphcore-types.h	2009-10-24 00:11:21.000000000 -0700
++++ mysql-5.0.86/sql/oqgraph/graphcore-types.h	2009-11-03 21:36:59.000000000 -0800
 @@ -0,0 +1,36 @@
 +/* Copyright (C) 2007-2009 Arjen G Lentz & Antony T Curtis for Open Query
 +
@@ -531,7 +531,7 @@ Index: mysql-5.0.86/sql/oqgraph/graphcore-types.h
 Index: mysql-5.0.86/sql/oqgraph/graphcore.cc
 ===================================================================
 --- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ mysql-5.0.86/sql/oqgraph/graphcore.cc	2009-10-24 00:29:22.000000000 -0700
++++ mysql-5.0.86/sql/oqgraph/graphcore.cc	2009-11-03 21:36:59.000000000 -0800
 @@ -0,0 +1,1034 @@
 +/* Copyright (C) 2007-2009 Arjen G Lentz & Antony T Curtis for Open Query
 +
@@ -1156,7 +1156,7 @@ Index: mysql-5.0.86/sql/oqgraph/graphcore.cc
 +      return EDGE_NOT_FOUND;
 +    if (!(dest= share->find_vertex(dest_id)))
 +      return EDGE_NOT_FOUND;
-+    if (!(edge= share->find_edge(*orig, *dest)));
++    if (!(edge= share->find_edge(*orig, *dest)))
 +      return EDGE_NOT_FOUND;
 +    remove_edge(*edge, share->g);
 +    if (!degree(*orig, share->g))
@@ -1570,7 +1570,7 @@ Index: mysql-5.0.86/sql/oqgraph/graphcore.cc
 Index: mysql-5.0.86/sql/oqgraph/graphcore.h
 ===================================================================
 --- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ mysql-5.0.86/sql/oqgraph/graphcore.h	2009-10-24 00:24:20.000000000 -0700
++++ mysql-5.0.86/sql/oqgraph/graphcore.h	2009-11-03 21:36:59.000000000 -0800
 @@ -0,0 +1,116 @@
 +/* Copyright (C) 2007-2009 Arjen G Lentz & Antony T Curtis for Open Query
 +
@@ -1691,8 +1691,8 @@ Index: mysql-5.0.86/sql/oqgraph/graphcore.h
 Index: mysql-5.0.86/sql/oqgraph/ha_oqgraph.cc
 ===================================================================
 --- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ mysql-5.0.86/sql/oqgraph/ha_oqgraph.cc	2009-10-24 01:27:31.000000000 -0700
-@@ -0,0 +1,1029 @@
++++ mysql-5.0.86/sql/oqgraph/ha_oqgraph.cc	2009-11-03 21:36:59.000000000 -0800
+@@ -0,0 +1,1033 @@
 +/* Copyright (C) 2007-2009 Arjen G Lentz & Antony T Curtis for Open Query
 +   Portions of this file copyright (C) 2000-2006 MySQL AB
 +
@@ -1750,13 +1750,17 @@ Index: mysql-5.0.86/sql/oqgraph/ha_oqgraph.cc
 +  char name[FN_REFLEN+1];
 +};
 +
++static const char oqgraph_description[]=
++  "Open Query Graph Computation Engine, stored in memory "
++  "(http://openquery.com/graph)";
++
 +#if MYSQL_VERSION_ID < 50100
 +static bool oqgraph_init();
 +
 +handlerton oqgraph_hton= {
 +  "OQGRAPH",
 +  SHOW_OPTION_YES,
-+  "Open Query Graph Computation Engine, stored in memory (http://openquery.com/graph)",
++  oqgraph_description,
 +  DB_TYPE_OQGRAPH,
 +  oqgraph_init,
 +  0,       /* slot */
@@ -2709,7 +2713,7 @@ Index: mysql-5.0.86/sql/oqgraph/ha_oqgraph.cc
 +  &oqgraph_storage_engine,
 +  "OQGRAPH",
 +  "Arjen Lentz & Antony T Curtis, Open Query",
-+  "Open Query Graph Computation Engine, stored in memory (http://openquery.com/graph)",
++  oqgraph_description,
 +  PLUGIN_LICENSE_GPL,
 +  (int (*)(void*)) oqgraph_init, /* Plugin Init                  */
 +  oqgraph_fini,               /* Plugin Deinit                   */
@@ -2725,7 +2729,7 @@ Index: mysql-5.0.86/sql/oqgraph/ha_oqgraph.cc
 Index: mysql-5.0.86/sql/oqgraph/ha_oqgraph.h
 ===================================================================
 --- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ mysql-5.0.86/sql/oqgraph/ha_oqgraph.h	2009-10-24 01:27:31.000000000 -0700
++++ mysql-5.0.86/sql/oqgraph/ha_oqgraph.h	2009-11-03 21:36:59.000000000 -0800
 @@ -0,0 +1,114 @@
 +/* Copyright (C) 2007-2009 Arjen G Lentz & Antony T Curtis for Open Query
 +   Portions of this file copyright (C) 2000-2006 MySQL AB
