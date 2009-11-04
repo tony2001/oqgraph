@@ -27,14 +27,6 @@
 #ifndef oq_graphcore_graph_h_
 #define oq_graphcore_graph_h_
 
-typedef struct {
-  VertexID id;
-} VertexInfo;
-
-typedef struct {
-  EdgeWeight weight;
-} EdgeInfo;
-
 typedef adjacency_list
 <
   vecS,

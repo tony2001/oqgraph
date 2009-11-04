@@ -429,8 +429,8 @@ Index: mysql-5.0.86/sql/oqgraph/README
 Index: mysql-5.0.86/sql/oqgraph/graphcore-graph.h
 ===================================================================
 --- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ mysql-5.0.86/sql/oqgraph/graphcore-graph.h	2009-11-03 21:36:59.000000000 -0800
-@@ -0,0 +1,56 @@
++++ mysql-5.0.86/sql/oqgraph/graphcore-graph.h	2009-11-04 02:22:22.000000000 -0800
+@@ -0,0 +1,48 @@
 +/* Copyright (C) 2007-2009 Arjen G Lentz & Antony T Curtis for Open Query
 +
 +   This program is free software; you can redistribute it and/or modify
@@ -460,14 +460,6 @@ Index: mysql-5.0.86/sql/oqgraph/graphcore-graph.h
 +#ifndef oq_graphcore_graph_h_
 +#define oq_graphcore_graph_h_
 +
-+typedef struct {
-+  VertexID id;
-+} VertexInfo;
-+
-+typedef struct {
-+  EdgeWeight weight;
-+} EdgeInfo;
-+
 +typedef adjacency_list
 +<
 +  vecS,
@@ -490,7 +482,7 @@ Index: mysql-5.0.86/sql/oqgraph/graphcore-graph.h
 Index: mysql-5.0.86/sql/oqgraph/graphcore-types.h
 ===================================================================
 --- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ mysql-5.0.86/sql/oqgraph/graphcore-types.h	2009-11-03 21:36:59.000000000 -0800
++++ mysql-5.0.86/sql/oqgraph/graphcore-types.h	2009-11-04 02:22:22.000000000 -0800
 @@ -0,0 +1,36 @@
 +/* Copyright (C) 2007-2009 Arjen G Lentz & Antony T Curtis for Open Query
 +
@@ -531,8 +523,8 @@ Index: mysql-5.0.86/sql/oqgraph/graphcore-types.h
 Index: mysql-5.0.86/sql/oqgraph/graphcore.cc
 ===================================================================
 --- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ mysql-5.0.86/sql/oqgraph/graphcore.cc	2009-11-03 22:05:22.000000000 -0800
-@@ -0,0 +1,1035 @@
++++ mysql-5.0.86/sql/oqgraph/graphcore.cc	2009-11-04 02:22:22.000000000 -0800
+@@ -0,0 +1,1099 @@
 +/* Copyright (C) 2007-2009 Arjen G Lentz & Antony T Curtis for Open Query
 +
 +   This program is free software; you can redistribute it and/or modify
@@ -584,16 +576,48 @@ Index: mysql-5.0.86/sql/oqgraph/graphcore.cc
 +using namespace open_query;
 +using namespace boost;
 +
-+enum vertex_id_t { vertex_id };
-+
 +static const row empty_row = { 0 };
++
++namespace open_query
++{
++  enum vertex_id_t { vertex_id };
++
++  struct VertexInfo {
++    inline VertexInfo() { }
++
++    inline VertexInfo(VertexID _id)
++      : id(_id) { }
++
++    VertexID id;
++  };
++
++  struct EdgeInfo {
++    EdgeWeight weight;
++  };
++}
 +
 +namespace boost
 +{
 +  BOOST_INSTALL_PROPERTY(vertex, id);
++
++  namespace graph
++  {
++    template<>
++    struct internal_vertex_name<VertexInfo>
++    {
++      typedef multi_index::member<VertexInfo, VertexID, &VertexInfo::id> type;
++    };
++
++    template<>
++    struct internal_vertex_constructor<VertexInfo>
++    {
++      typedef vertex_from_name<VertexInfo> type;
++    };
++  }
 +}
 +
-+namespace open_query {
++namespace open_query
++{
 +
 +  #include "graphcore-graph.h"
 +
@@ -999,13 +1023,7 @@ Index: mysql-5.0.86/sql/oqgraph/graphcore.cc
 +  optional<Vertex>
 +  oqgraph_share::find_vertex(VertexID id) const
 +  {
-+    optional<Vertex> result;
-+    graph_traits<Graph>::vertex_iterator vi, viend;
-+
-+    tie(vi, viend)= vertices(g);
-+    if ((vi= std::find_if(vi, viend, id_equals(id, idmap))) != viend)
-+      result= *vi;
-+    return result;
++    return boost::graph::find_vertex(id, g);
 +  }
 +
 +  int oqgraph::delete_all() throw()
@@ -1025,23 +1043,42 @@ Index: mysql-5.0.86/sql/oqgraph/graphcore.cc
 +      return INVALID_WEIGHT;
 +    if (!(orig= share->find_vertex(orig_id)))
 +    {
-+      orig= add_vertex(share->g);
-+      if (orig == graph_traits<Graph>::null_vertex())
++      try
++      {
++        orig= add_vertex(VertexInfo(orig_id), share->g);
++        if (orig == graph_traits<Graph>::null_vertex())
++          return CANNOT_ADD_VERTEX;
++      }
++      catch (...)
++      {
 +        return CANNOT_ADD_VERTEX;
-+      share->idmap[*orig]= orig_id;
++      }
 +    }
 +    if (!(dest= share->find_vertex(dest_id)))
 +    {
-+      dest= add_vertex(share->g);
-+      if (dest == graph_traits<Graph>::null_vertex())
++      try
++      {
++        dest= add_vertex(VertexInfo(dest_id), share->g);
++        if (dest == graph_traits<Graph>::null_vertex())
++          return CANNOT_ADD_VERTEX;
++      }
++      catch (...)
++      {
 +        return CANNOT_ADD_VERTEX;
-+      share->idmap[*dest]= dest_id;
++      }
 +    }
 +    if (!(edge= share->find_edge(*orig, *dest)))
 +    {
-+      tie(edge, inserted)= add_edge(*orig, *dest, share->g);
-+      if (!inserted)
++      try
++      {
++        tie(edge, inserted)= add_edge(*orig, *dest, share->g);
++        if (!inserted)
++          return CANNOT_ADD_EDGE;
++      }
++      catch (...)
++      {
 +        return CANNOT_ADD_EDGE;
++      }
 +    }
 +    else
 +    {
@@ -1095,24 +1132,43 @@ Index: mysql-5.0.86/sql/oqgraph/graphcore.cc
 +      optional<Edge> new_edge;
 +      if (orig_neq && !(orig= share->find_vertex(*orig_id)))
 +      {
-+        orig= add_vertex(share->g);
-+        if (orig == graph_traits<Graph>::null_vertex())
++        try
++        {
++          orig= add_vertex(VertexInfo(*orig_id), share->g);
++          if (orig == graph_traits<Graph>::null_vertex())
++            return CANNOT_ADD_VERTEX;
++        }
++        catch (...)
++        {
 +          return CANNOT_ADD_VERTEX;
-+        share->idmap[*orig]= *orig_id;
++        }
 +      }
 +      if (dest_neq && !(dest= share->find_vertex(*dest_id)))
 +      {
-+        dest= add_vertex(share->g);
-+        if (dest == graph_traits<Graph>::null_vertex())
++        try
++        {
++          dest= add_vertex(VertexInfo(*dest_id), share->g);
++          if (dest == graph_traits<Graph>::null_vertex())
++            return CANNOT_ADD_VERTEX;
++        }
++        catch (...)
++        {
 +          return CANNOT_ADD_VERTEX;
-+        share->idmap[*dest]= *dest_id;
++        }
 +      }
 +      if (!(new_edge= share->find_edge(*orig, *dest)))
 +      {
-+        bool inserted;
-+        tie(new_edge, inserted)= add_edge(*orig, *dest, share->g);
-+        if (!inserted)
++        try
++        {
++          bool inserted;
++          tie(new_edge, inserted)= add_edge(*orig, *dest, share->g);
++          if (!inserted)
++            return CANNOT_ADD_EDGE;
++        }
++        catch (...)
++        {
 +          return CANNOT_ADD_EDGE;
++        }
 +      }
 +      else
 +      {
@@ -1571,7 +1627,7 @@ Index: mysql-5.0.86/sql/oqgraph/graphcore.cc
 Index: mysql-5.0.86/sql/oqgraph/graphcore.h
 ===================================================================
 --- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ mysql-5.0.86/sql/oqgraph/graphcore.h	2009-11-03 21:36:59.000000000 -0800
++++ mysql-5.0.86/sql/oqgraph/graphcore.h	2009-11-04 02:22:22.000000000 -0800
 @@ -0,0 +1,116 @@
 +/* Copyright (C) 2007-2009 Arjen G Lentz & Antony T Curtis for Open Query
 +

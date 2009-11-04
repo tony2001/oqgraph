@@ -49,16 +49,48 @@
 using namespace open_query;
 using namespace boost;
 
-enum vertex_id_t { vertex_id };
-
 static const row empty_row = { 0 };
+
+namespace open_query
+{
+  enum vertex_id_t { vertex_id };
+
+  struct VertexInfo {
+    inline VertexInfo() { }
+
+    inline VertexInfo(VertexID _id)
+      : id(_id) { }
+
+    VertexID id;
+  };
+
+  struct EdgeInfo {
+    EdgeWeight weight;
+  };
+}
 
 namespace boost
 {
   BOOST_INSTALL_PROPERTY(vertex, id);
+
+  namespace graph
+  {
+    template<>
+    struct internal_vertex_name<VertexInfo>
+    {
+      typedef multi_index::member<VertexInfo, VertexID, &VertexInfo::id> type;
+    };
+
+    template<>
+    struct internal_vertex_constructor<VertexInfo>
+    {
+      typedef vertex_from_name<VertexInfo> type;
+    };
+  }
 }
 
-namespace open_query {
+namespace open_query
+{
 
   #include "graphcore-graph.h"
 
@@ -464,13 +496,7 @@ namespace open_query
   optional<Vertex>
   oqgraph_share::find_vertex(VertexID id) const
   {
-    optional<Vertex> result;
-    graph_traits<Graph>::vertex_iterator vi, viend;
-
-    tie(vi, viend)= vertices(g);
-    if ((vi= std::find_if(vi, viend, id_equals(id, idmap))) != viend)
-      result= *vi;
-    return result;
+    return boost::graph::find_vertex(id, g);
   }
 
   int oqgraph::delete_all() throw()
@@ -490,23 +516,42 @@ namespace open_query
       return INVALID_WEIGHT;
     if (!(orig= share->find_vertex(orig_id)))
     {
-      orig= add_vertex(share->g);
-      if (orig == graph_traits<Graph>::null_vertex())
+      try
+      {
+        orig= add_vertex(VertexInfo(orig_id), share->g);
+        if (orig == graph_traits<Graph>::null_vertex())
+          return CANNOT_ADD_VERTEX;
+      }
+      catch (...)
+      {
         return CANNOT_ADD_VERTEX;
-      share->idmap[*orig]= orig_id;
+      }
     }
     if (!(dest= share->find_vertex(dest_id)))
     {
-      dest= add_vertex(share->g);
-      if (dest == graph_traits<Graph>::null_vertex())
+      try
+      {
+        dest= add_vertex(VertexInfo(dest_id), share->g);
+        if (dest == graph_traits<Graph>::null_vertex())
+          return CANNOT_ADD_VERTEX;
+      }
+      catch (...)
+      {
         return CANNOT_ADD_VERTEX;
-      share->idmap[*dest]= dest_id;
+      }
     }
     if (!(edge= share->find_edge(*orig, *dest)))
     {
-      tie(edge, inserted)= add_edge(*orig, *dest, share->g);
-      if (!inserted)
+      try
+      {
+        tie(edge, inserted)= add_edge(*orig, *dest, share->g);
+        if (!inserted)
+          return CANNOT_ADD_EDGE;
+      }
+      catch (...)
+      {
         return CANNOT_ADD_EDGE;
+      }
     }
     else
     {
@@ -560,24 +605,43 @@ namespace open_query
       optional<Edge> new_edge;
       if (orig_neq && !(orig= share->find_vertex(*orig_id)))
       {
-        orig= add_vertex(share->g);
-        if (orig == graph_traits<Graph>::null_vertex())
+        try
+        {
+          orig= add_vertex(VertexInfo(*orig_id), share->g);
+          if (orig == graph_traits<Graph>::null_vertex())
+            return CANNOT_ADD_VERTEX;
+        }
+        catch (...)
+        {
           return CANNOT_ADD_VERTEX;
-        share->idmap[*orig]= *orig_id;
+        }
       }
       if (dest_neq && !(dest= share->find_vertex(*dest_id)))
       {
-        dest= add_vertex(share->g);
-        if (dest == graph_traits<Graph>::null_vertex())
+        try
+        {
+          dest= add_vertex(VertexInfo(*dest_id), share->g);
+          if (dest == graph_traits<Graph>::null_vertex())
+            return CANNOT_ADD_VERTEX;
+        }
+        catch (...)
+        {
           return CANNOT_ADD_VERTEX;
-        share->idmap[*dest]= *dest_id;
+        }
       }
       if (!(new_edge= share->find_edge(*orig, *dest)))
       {
-        bool inserted;
-        tie(new_edge, inserted)= add_edge(*orig, *dest, share->g);
-        if (!inserted)
+        try
+        {
+          bool inserted;
+          tie(new_edge, inserted)= add_edge(*orig, *dest, share->g);
+          if (!inserted)
+            return CANNOT_ADD_EDGE;
+        }
+        catch (...)
+        {
           return CANNOT_ADD_EDGE;
+        }
       }
       else
       {
