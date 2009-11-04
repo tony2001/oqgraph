@@ -531,8 +531,8 @@ Index: mysql-5.0.86/sql/oqgraph/graphcore-types.h
 Index: mysql-5.0.86/sql/oqgraph/graphcore.cc
 ===================================================================
 --- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ mysql-5.0.86/sql/oqgraph/graphcore.cc	2009-11-03 21:36:59.000000000 -0800
-@@ -0,0 +1,1034 @@
++++ mysql-5.0.86/sql/oqgraph/graphcore.cc	2009-11-03 22:05:22.000000000 -0800
+@@ -0,0 +1,1035 @@
 +/* Copyright (C) 2007-2009 Arjen G Lentz & Antony T Curtis for Open Query
 +
 +   This program is free software; you can redistribute it and/or modify
@@ -968,12 +968,12 @@ Index: mysql-5.0.86/sql/oqgraph/graphcore.cc
 +  oqgraph* oqgraph::create(oqgraph_share *share) throw()
 +  {
 +    assert(share != NULL);
-+    return new oqgraph(share);
++    return new (std::nothrow) oqgraph(share);
 +  }
 +
 +  oqgraph_share* oqgraph::create() throw()
 +  {
-+    return new oqgraph_share();
++    return new (std::nothrow) oqgraph_share();
 +  }
 +
 +  optional<Edge>
@@ -1195,7 +1195,7 @@ Index: mysql-5.0.86/sql/oqgraph/graphcore.cc
 +      {
 +      case NO_SEARCH | HAVE_ORIG | HAVE_DEST:
 +      case NO_SEARCH | HAVE_ORIG:
-+        if ((cursor= new stack_cursor(share)) && orig)
++        if ((cursor= new (std::nothrow) stack_cursor(share)) && orig)
 +        {
 +          graph_traits<Graph>::out_edge_iterator ei, ei_end;
 +          for (tie(ei, ei_end)= out_edges(*orig, share->g); ei != ei_end; ++ei)
@@ -1208,7 +1208,8 @@ Index: mysql-5.0.86/sql/oqgraph/graphcore.cc
 +        /* fall through */
 +      case NO_SEARCH | HAVE_DEST:
 +        if ((op & HAVE_DEST) &&
-+            (cursor || (cursor= new stack_cursor(share))) && dest)
++            (cursor || (cursor= new (std::nothrow) stack_cursor(share))) &&
++	    dest)
 +        {
 +          graph_traits<Graph>::in_edge_iterator ei, ei_end;
 +          for (tie(ei, ei_end)= in_edges(*dest, share->g); ei != ei_end; ++ei)
@@ -1221,11 +1222,11 @@ Index: mysql-5.0.86/sql/oqgraph/graphcore.cc
 +        break;
 +
 +      case NO_SEARCH:
-+        cursor= new vertices_cursor(share);
++        cursor= new (std::nothrow) vertices_cursor(share);
 +        break;
 +
 +      case DIJKSTRAS | HAVE_ORIG | HAVE_DEST:
-+        if ((cursor= new stack_cursor(share)) && orig && dest)
++        if ((cursor= new (std::nothrow) stack_cursor(share)) && orig && dest)
 +        {
 +          std::vector<Vertex> p(num_vertices(share->g));
 +          std::vector<EdgeWeight> d(num_vertices(share->g));
@@ -1255,7 +1256,7 @@ Index: mysql-5.0.86/sql/oqgraph/graphcore.cc
 +        break;
 +
 +      case BREADTH_FIRST | HAVE_ORIG | HAVE_DEST:
-+        if ((cursor= new stack_cursor(share)) && orig && dest)
++        if ((cursor= new (std::nothrow) stack_cursor(share)) && orig && dest)
 +        {
 +          std::vector<Vertex> p(num_vertices(share->g));
 +          oqgraph_goal<false, on_discover_vertex>
@@ -1282,7 +1283,7 @@ Index: mysql-5.0.86/sql/oqgraph/graphcore.cc
 +
 +      case DIJKSTRAS | HAVE_ORIG:
 +      case BREADTH_FIRST | HAVE_ORIG:
-+        if ((cursor= new stack_cursor(share)) && (orig || dest))
++        if ((cursor= new (std::nothrow) stack_cursor(share)) && (orig || dest))
 +        {
 +          std::vector<Vertex> p(num_vertices(share->g));
 +          std::vector<EdgeWeight> d(num_vertices(share->g));
@@ -1335,7 +1336,7 @@ Index: mysql-5.0.86/sql/oqgraph/graphcore.cc
 +
 +      case BREADTH_FIRST | HAVE_DEST:
 +      case DIJKSTRAS | HAVE_DEST:
-+        if ((cursor= new stack_cursor(share)) && (orig || dest))
++        if ((cursor= new (std::nothrow) stack_cursor(share)) && (orig || dest))
 +        {
 +          std::vector<Vertex> p(num_vertices(share->g));
 +          std::vector<EdgeWeight> d(num_vertices(share->g));
@@ -1427,7 +1428,7 @@ Index: mysql-5.0.86/sql/oqgraph/graphcore.cc
 +    if (scan || !cursor)
 +    {
 +      delete cursor; cursor= 0;
-+      if (!(cursor= new edges_cursor(share)))
++      if (!(cursor= new (std::nothrow) edges_cursor(share)))
 +        return MISC_FAIL;
 +    }
 +    row_info= empty_row;

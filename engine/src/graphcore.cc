@@ -433,12 +433,12 @@ namespace open_query
   oqgraph* oqgraph::create(oqgraph_share *share) throw()
   {
     assert(share != NULL);
-    return new oqgraph(share);
+    return new (std::nothrow) oqgraph(share);
   }
 
   oqgraph_share* oqgraph::create() throw()
   {
-    return new oqgraph_share();
+    return new (std::nothrow) oqgraph_share();
   }
 
   optional<Edge>
@@ -660,7 +660,7 @@ namespace open_query
       {
       case NO_SEARCH | HAVE_ORIG | HAVE_DEST:
       case NO_SEARCH | HAVE_ORIG:
-        if ((cursor= new stack_cursor(share)) && orig)
+        if ((cursor= new (std::nothrow) stack_cursor(share)) && orig)
         {
           graph_traits<Graph>::out_edge_iterator ei, ei_end;
           for (tie(ei, ei_end)= out_edges(*orig, share->g); ei != ei_end; ++ei)
@@ -673,7 +673,8 @@ namespace open_query
         /* fall through */
       case NO_SEARCH | HAVE_DEST:
         if ((op & HAVE_DEST) &&
-            (cursor || (cursor= new stack_cursor(share))) && dest)
+            (cursor || (cursor= new (std::nothrow) stack_cursor(share))) &&
+	    dest)
         {
           graph_traits<Graph>::in_edge_iterator ei, ei_end;
           for (tie(ei, ei_end)= in_edges(*dest, share->g); ei != ei_end; ++ei)
@@ -686,11 +687,11 @@ namespace open_query
         break;
 
       case NO_SEARCH:
-        cursor= new vertices_cursor(share);
+        cursor= new (std::nothrow) vertices_cursor(share);
         break;
 
       case DIJKSTRAS | HAVE_ORIG | HAVE_DEST:
-        if ((cursor= new stack_cursor(share)) && orig && dest)
+        if ((cursor= new (std::nothrow) stack_cursor(share)) && orig && dest)
         {
           std::vector<Vertex> p(num_vertices(share->g));
           std::vector<EdgeWeight> d(num_vertices(share->g));
@@ -720,7 +721,7 @@ namespace open_query
         break;
 
       case BREADTH_FIRST | HAVE_ORIG | HAVE_DEST:
-        if ((cursor= new stack_cursor(share)) && orig && dest)
+        if ((cursor= new (std::nothrow) stack_cursor(share)) && orig && dest)
         {
           std::vector<Vertex> p(num_vertices(share->g));
           oqgraph_goal<false, on_discover_vertex>
@@ -747,7 +748,7 @@ namespace open_query
 
       case DIJKSTRAS | HAVE_ORIG:
       case BREADTH_FIRST | HAVE_ORIG:
-        if ((cursor= new stack_cursor(share)) && (orig || dest))
+        if ((cursor= new (std::nothrow) stack_cursor(share)) && (orig || dest))
         {
           std::vector<Vertex> p(num_vertices(share->g));
           std::vector<EdgeWeight> d(num_vertices(share->g));
@@ -800,7 +801,7 @@ namespace open_query
 
       case BREADTH_FIRST | HAVE_DEST:
       case DIJKSTRAS | HAVE_DEST:
-        if ((cursor= new stack_cursor(share)) && (orig || dest))
+        if ((cursor= new (std::nothrow) stack_cursor(share)) && (orig || dest))
         {
           std::vector<Vertex> p(num_vertices(share->g));
           std::vector<EdgeWeight> d(num_vertices(share->g));
@@ -892,7 +893,7 @@ namespace open_query
     if (scan || !cursor)
     {
       delete cursor; cursor= 0;
-      if (!(cursor= new edges_cursor(share)))
+      if (!(cursor= new (std::nothrow) edges_cursor(share)))
         return MISC_FAIL;
     }
     row_info= empty_row;
