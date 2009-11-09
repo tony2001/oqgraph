@@ -1,0 +1,24 @@
+Maze example by Arjen Lentz (arjen@openquery.com)
+
+Which real programmer doesn't remember writing an app to build a maze
+of arbitrary size? The more adventurous would also write an algorithm
+to find the shortest path through the maze.
+
+Well, this demo does pretty much that, with direct SQL output.
+It was implemented from scratch since the last time I did this was on
+a DEC PDP-8 (VT78 terminal version) and an Acorn BBC/B. 25+ years ago!
+I liked the little exercise. Indulgent, sure. But why not.
+
+Of course, the finding of the shortest path is handled by OQGRAPH.
+
+
+See INSTALL for further details.
+
+
+TODO
+====
+
+Fixups and minor relevant enhancements welcome! Enjoy!
+
+
+=== end of file ===

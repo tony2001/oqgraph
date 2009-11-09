@@ -1,0 +1,44 @@
+(instructions by Arjen)
+
+
+Compile maze.c by doing gcc -o maze maze.c
+You should now be able to do ./maze and get the usage info.
+
+Create a maze_graph table with the OQGRAPH structure.
+(we're not including that statement here just in case it changes)
+
+Run
+  ./maze 3 3 >maze.sql
+the output you get to stderr is the maze in ASCII, you may print it ;-)
+
+And import SQL statements into MySQL.
+  mysql ...
+  USE test
+  SOURCE maze.sql
+
+You can then do
+SELECT GROUP_CONCAT(
+     CONCAT('(',
+            TRUNCATE(linkid % 5,0),
+            ',',
+            TRUNCATE(linkid / 5,0),
+            ')'
+           )
+     ORDER BY seq
+     SEPARATOR ' -> ') AS path
+  FROM maze_graph
+  WHERE latch=1 AND origid=@maze_exit_w AND destid=@maze_exit_e \G
+
+As you can see, the maze.sql sets the West/East maze exits in @vars.
+
+
+Now you can try the same with larger mazes.
+You may need to increase the stack size (shell command):
+  ulimit -s 819200
+The above allows me to do a 1000x1000 maze on an amd64.
+
+I haven't calculated the exact usage/needs, but the maze creation algorithm
+is recursive, depth-first. So it will needs lots, obviously.
+
+
+=== end of file ===

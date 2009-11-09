@@ -1,0 +1,33 @@
+drop table if exists graph;
+Warnings:
+Note	1051	Unknown table 'graph'
+create table `graph` (
+  `latch` smallint(5) null DEFAULT NULL,
+  `origid` bigint(20) unsigned DEFAULT NULL,
+  `destid` bigint(20) unsigned DEFAULT null,
+  `weight` double default null,
+  `seq` bigint(20) unsigned DEFAULT NULL,
+  `linkid` bigint(20) unsigned DEFAULT NULL,
+  key `latch` (`latch`, `origid`, `destid`) using hash,
+  key `latch_2` (`latch`, `destid`, `origid`) using hash
+) engine=oqgraph default charset=latin1;
+insert into graph(origid, destid) values (1,2), (2,1);
+insert into graph(origid, destid) values (1,3), (3,1);
+insert into graph(origid, destid) values (3,4), (4,3);
+insert into graph(origid, destid) values (3,5), (5,3);
+insert into graph(origid, destid) values (5,6), (6,5);
+select linkid from graph where latch = 2 and origid = 1 and weight = 1;
+linkid
+3
+2
+select linkid from graph where latch = 2 and origid = 1 and weight = 2;
+linkid
+5
+4
+select linkid from graph 
+where latch = 2 and origid = 1 and (weight = 1 or weight = 2);
+linkid
+5
+4
+3
+2
