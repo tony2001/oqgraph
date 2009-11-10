@@ -32,7 +32,7 @@ BOOST_CXXFLAGS+=	-momit-leaf-frame-pointer -falign-loops
 BOOST_CXXFLAGS+=	-fvisibility-inlines-hidden
 BOOST_CXXFLAGS+=	-funroll-loops -fno-trapping-math
 
-EXTRA_DIST = ha_oqgraph.h ha_oagraph.cc CMakeFiles.txt plug.in oqgraph_probes.d
+EXTRA_DIST = ha_oqgraph.h ha_oqgraph.cc CMakeFiles.txt plug.in oqgraph_probes.d
 
 DTRACE =                @DTRACE@
 DTRACEFLAGS =           @DTRACEFLAGS@
