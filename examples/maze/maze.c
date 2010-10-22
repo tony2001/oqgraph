@@ -38,7 +38,10 @@ enum { NORTH = 1, EAST = 2, SOUTH = 4, WEST = 8 };
 #define roomptr(x,y) (maze + roomofs((x),(y)))
 #define isdoor(x,y,direction) ((*roomptr((x),(y))) & direction)
 #define varprint(side,x,y) printf("SET @maze_exit_%c = %d;  -- (%d,%d)\n",(side),roomofs((x),(y)),(x),(y))
-#define sqlprint(x1,y1,x2,y2) printf("INSERT INTO maze_graph (origid,destid) VALUES (%d,%d);  -- (%d,%d) -> (%d,%d)\n",roomofs((x1),(y1)),roomofs((x2),(y2)),(x1),(y1),(x2),(y2))
+// We need to insert both a->b and b->a to create a bidirectional doorway...
+#define sqlprint(x1,y1,x2,y2) printf("INSERT INTO maze_graph (origid,destid) VALUES (%d,%d),(%d,%d);  -- (%d,%d) -> (%d,%d)\n", \
+                                     roomofs((x1),(y1)),roomofs((x2),(y2)), roomofs((x2),(y2)),roomofs((x1),(y1)),  \
+                                     (x1),(y1), (x2),(y2))
 
 
 void roomwalk (int x, int y)
