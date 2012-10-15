@@ -11,7 +11,7 @@ AC_DEFUN([MYSQL_SRC_TEST], [
     
     if test -d "$dir/sql" -a \
             -d "$dir/include" -a \
-            -f "$dir/sql/mysql_priv.h" -a \
+            -f "$dir/include/mysql_version.h" -a \
             -f "$dir/sql/handler.h" -a \
             -f "$dir/include/mysql/plugin.h"; then
       AC_DEFINE([MYSQL_SRC], [1], [Source directory for MySQL])

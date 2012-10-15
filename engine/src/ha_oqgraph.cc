@@ -29,9 +29,35 @@
 #endif
 
 #define MYSQL_SERVER	// to have THD
-#include "mysql_priv.h"
+
+#include <mysql_version.h>
+
+#if MYSQL_VERSION_ID >= 50500
+/* in newer versions of MySQL we have to include all of these instead of mysql_priv.h */
+# include <sql/field.h>
+# include <sql/structs.h>
+# include <sql/handler.h>
+# include <sql/sql_class.h>
+# include <sql/key.h>
+
+#define bmove_align bmove
+
+#else
+# include <mysql_priv.h>
+#endif
+
 #if MYSQL_VERSION_ID >= 50100
 #include <mysql/plugin.h>
+#endif
+
+#ifndef hash_init
+/* yeah, they just went and renamed the functions somewhere between 5.1 and 5.5, just like that */
+# define hash_get_key    my_hash_get_key
+# define hash_init       my_hash_init
+# define hash_free       my_hash_free
+# define hash_search     my_hash_search
+# define hash_delete     my_hash_delete
+# define hash_update     my_hash_update
 #endif
 
 #ifdef HAVE_OQGRAPH
